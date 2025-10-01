@@ -2,29 +2,12 @@
 
 Week 6 Project - Streaming Data
 
+This project will attempt to review data from Netflix to determine the impact of subscription type and number of hours watched on whether the customer churns.
 
 
 
 
 
-
-Nearly every streaming analytics system stores processed data somewhere for further analysis, historical reference, or integration with BI tools.
-
-In this example project, we incorporate relational data stores. We stream data into SQLite and DuckDB, but these examples can be altered to work with MySQL, PostgreSQL, MongoDB, and more.
-
-We use one producer that can write up to four different sinks:
-
-to a file
-to a Kafka topic (set in .env)
-to a SQLite database
-to a DuckDB database
-In data pipelines:
-
-A source generates records (our message generator).
-A sink stores or forwards them (file, Kafka, SQLite, DuckDB).
-An emitter is a small function that takes data from a source and writes it into a sink.
-Each emitter has one job (emit_message to the specified sink).
-Explore the code to see which aspects are common to all sinks and which parts are unique.
 
 First, Use Tools from Module 1 and 2
 Before starting, ensure you have completed the setup tasks in https://github.com/denisecase/buzzline-01-case and https://github.com/denisecase/buzzline-02-case first. Python 3.11 is required.
