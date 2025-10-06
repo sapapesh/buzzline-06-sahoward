@@ -85,7 +85,7 @@ python3 -m producers.producer_sahoward
 NOTE: The producer will still work if the Kafka service is not available.
 
 Consumer Terminal
-The below consumer will calculate the average sentiment for each other and update one message at a time.
+The below consumer will calculate the average hours watched for each subscription type and update one message at a time.
 
 In VS Code, open a NEW terminal in your root project folder. Use the commands below to activate .venv, and start the consumer.
 
