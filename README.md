@@ -100,3 +100,10 @@ python3 -m consumers.consumer_sahoward
 Review the Project Code
 Review the requirements.txt file.
 
+## Analyzing the results
+
+The consumer is reading the subscription type and calculating the average number of watch hours. In looking at the results, the average number of hours watched does not vary much whether the subscription type is premium, standard, or basic.
+
+![caption](images/netflix.png)
+
+Based on this data, it would appear that there are other factors that are more critical in determining whether a customer will churn with Netflix.
