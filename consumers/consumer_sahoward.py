@@ -1,188 +1,99 @@
 """consumer_sahoward.py"""
 
+import os
 import json
-import pandas as pd
+import threading
+from collections import defaultdict
+import matplotlib
+matplotlib.use("TkAgg")  # for interactive plotting
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from kafka import KafkaConsumer
-from kafka.errors import KafkaError
-
-# Import functions from local modules
+from matplotlib.animation import FuncAnimation
+from dotenv import load_dotenv
 from utils.utils_consumer import create_kafka_consumer
 from utils.utils_logger import logger
 
-#####################################
-# Load Environment Variables
-#####################################
-
 load_dotenv()
 
-#####################################
-# Getter Functions for .env Variables
-#####################################
-def get_kafka_topic() -> str:
-    """Fetch Kafka topic from environment or use default."""
-    topic = os.getenv("PROJECT_TOPIC", "buzzline-topic")
-    logger.info(f"Kafka topic: {topic}")
-    return topic
+# Shared data with thread lock
+subscription_type_avg = defaultdict(lambda: {"sum": 0.0, "count": 0})
+lock = threading.Lock()
 
+def get_kafka_topic():
+    return os.getenv("PROJECT_TOPIC", "netflix_customer_data")
 
-def get_kafka_consumer_group_id() -> str:
-    """Fetch Kafka consumer group id from environment or use default."""
-    group_id: str = os.getenv("BUZZ_CONSUMER_GROUP_ID", "default_group")
-    logger.info(f"Kafka consumer group id: {group_id}")
-    return group_id
+def get_kafka_consumer_group_id():
+    return os.getenv("BUZZ_CONSUMER_GROUP_ID", "default_group")
 
-#####################################
-# Set up data structures
-#####################################
-
-# Store watch hours grouped by subscription type
-subscription_type_watch_hours = defaultdict(list)
-
-
-#####################################
-# Set up live visuals
-#####################################
-def update_chart():
-    """Update the live chart with the average sentiment per category."""
-    # Clear the previous chart
-    ax.clear()
-
-    # Get the subscription type and average watch hours values
-    subscription_type = list(subscription_type_watch_hours.keys())
-    avg_watch_hours = [
-        sum(vals) / len(vals) if vals else 0
-        for vals in subscription_type_watch_hours.values()
-    ]
-
-    # Create a bar chart using the bar() method.
-    # Pass in the x list, the y list, and the color
-    ax.bar(subscription_type, avg_watch_hours, color="blue", edgecolor="black")
-
-    # Use the built-in axes methods to set the labels and title
-    ax.set_xlabel("Subscription Type")
-    ax.set_ylabel("Average Watch Hours")
-    ax.set_title("Real-Time Average Watch Hours Per Subscription Type by Sarah Howard")
-    ax.set_ylim(0, 100)
-
-    # Use the set_xticklabels() method to rotate the x-axis labels
-    # Pass in the x list, specify the rotation angle is 45 degrees,
-    # and align them to the right
-    # ha stands for horizontal alignment
-    ax.set_xticklabels(categories, rotation=45, ha="right")
-
-    # Use the tight_layout() method to automatically adjust the padding
-    plt.tight_layout()
-
-    # Draw the chart
-    plt.draw()
-
-    # Pause briefly to allow some time for the chart to render
-    plt.pause(0.01)
-
-#####################################
-# Function to process a single message
-# #####################################
-
-def process_message(message: str) -> None:
-    """
-    Process a single JSON message from Kafka and update the chart.
-
-    Args:
-        message (str): The JSON message as a string.
-    """
+# Kafka consumer thread
+def kafka_consumer_thread(consumer):
+    logger.info("Kafka consumer thread started.")
     try:
-        # Log the raw message for debugging
-        logger.debug(f"Raw message: {message}")
+        for message_str in consumer:
+            try:
+                data = json.loads(message_str)
+                logger.info(f"Received message: {data}")  # log every message
 
-        # Parse the JSON string into a Python dictionary
-        message_dict: dict = json.loads(message)
+                sub_type = data.get("subscription_type", "unknown")
+                watch_hours = float(data.get("watch_hours", 0.0))
 
-        # Ensure the processed JSON is logged for debugging
-        logger.info(f"Processed JSON message: {message_dict}")
+                with lock:
+                    subscription_type_avg[sub_type]["sum"] += watch_hours
+                    subscription_type_avg[sub_type]["count"] += 1
+                    avg = subscription_type_avg[sub_type]["sum"] / subscription_type_avg[sub_type]["count"]
+                    logger.info(f"{sub_type}: avg watch hours = {avg:.2f}")
 
-        # Ensure it's a dictionary before accessing fields
-        if isinstance(message_dict, dict):
-            subscription_type = message_dict.get("subscription_type", "unknown")
-            watch_hours = float(message_dict.get("watch_hours", 0.0))
-
-            logger.info(f"Message subscription type: {subscription_type}, watch hours: {watch_hours}")
-
-            # Append watch hours to subscription type
-            subscription_type_watch_hours[subscription_type].append(watch_hours)
-
-            # Log the updated counts
-            logger.info(f"Updated subscription type watch hours: {dict(subscription_type_watch_hours)}")
-
-            # Update the chart
-            update_chart()
-
-            # Log the updated chart
-            logger.info(f"Chart updated successfully for message: {message}")
-        else:
-            logger.error(f"Expected a dictionary but got: {type(message_dict)}")
-
-    except json.JSONDecodeError:
-        logger.error(f"Invalid JSON message: {message}")
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
     except Exception as e:
-        logger.error(f"Error processing message: {e}")
-
-
-#####################################
-# Define main function for this module
-#####################################
-
-
-def main() -> None:
-    """
-    Main entry point for the consumer.
-
-    - Reads the Kafka topic name and consumer group ID from environment variables.
-    - Creates a Kafka consumer using the `create_kafka_consumer` utility.
-    - Polls messages and updates a live chart.
-    """
-    logger.info("START consumer.")
-
-    # fetch .env content
-    topic = get_kafka_topic()
-    group_id = get_kafka_consumer_group_id()
-    logger.info(f"Consumer: Topic '{topic}' and group '{group_id}'...")
-
-    # Create the Kafka consumer using the helpful utility function.
-    consumer = create_kafka_consumer(topic, group_id)
-
-    # Poll and process messages
-    logger.info(f"Polling messages from topic '{topic}'...")
-    try:
-        for message in consumer:
-            # message is a complex object with metadata and value
-            # Use the value attribute to extract the message as a string
-            message_str = message.value
-            logger.debug(f"Received message at offset {message.offset}: {message_str}")
-            process_message(message_str)
-    except KeyboardInterrupt:
-        logger.warning("Consumer interrupted by user.")
-    except Exception as e:
-        logger.error(f"Error while consuming messages: {e}")
+        logger.error(f"Kafka consumer thread error: {e}")
     finally:
         consumer.close()
-        logger.info(f"Kafka consumer for topic '{topic}' closed.")
+        logger.info("Kafka consumer thread ended.")
 
-    logger.info(f"END consumer for topic '{topic}' and group '{group_id}'.")
+def main():
+    topic = get_kafka_topic()
+    group_id = get_kafka_consumer_group_id()
+    consumer = create_kafka_consumer(topic, group_id)
 
+    # Start consumer thread
+    thread = threading.Thread(target=kafka_consumer_thread, args=(consumer,), daemon=True)
+    thread.start()
 
-#####################################
-# Conditional Execution
-#####################################
+    # Setup live chart
+    plt.ion()
+    fig, ax = plt.subplots(figsize=(8,5))
+    plt.tight_layout()
+    plt.show(block=False)
+
+    def update_chart(frame):
+        ax.clear()
+        with lock:
+            sub_types = list(subscription_type_avg.keys())
+            avg_hours = [
+                subscription_type_avg[s]["sum"]/subscription_type_avg[s]["count"]
+                if subscription_type_avg[s]["count"] > 0 else 0
+                for s in sub_types
+            ]
+        ax.bar(range(len(sub_types)), avg_hours, color="blue", edgecolor="black")
+        ax.set_xticks(range(len(sub_types)))
+        ax.set_xticklabels(sub_types, rotation=45, ha="right")
+        ax.set_ylim(0, max(avg_hours+[10]))
+        ax.set_xlabel("Subscription Type")
+        ax.set_ylabel("Average Watch Hours")
+        ax.set_title("Real-Time Average Watch Hours Per Subscription Type")
+        plt.tight_layout()
+
+    ani = FuncAnimation(fig, update_chart, interval=1000, cache_frame_data=False)
+
+    try:
+        plt.show()
+    except KeyboardInterrupt:
+        logger.warning("Consumer interrupted by user.")
+    finally:
+        consumer.close()
+        plt.ioff()
+        plt.show()
+        logger.info("END consumer.")
 
 if __name__ == "__main__":
-
-    # Call the main function to start the consumer
     main()
-
-    # Turn off interactive mode after completion
-    plt.ioff()  
-
-    # Display the final chart
-    plt.show()
