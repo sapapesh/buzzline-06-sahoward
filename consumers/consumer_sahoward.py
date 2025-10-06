@@ -1,71 +1,188 @@
+"""consumer_sahoward.py"""
+
 import json
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 
-# --- Configuration ---
-# Must match the producer configuration
-BOOTSTRAP_SERVERS = ['localhost:9092'] 
-TOPIC_NAME = 'netflix_customer_data'
+# Import functions from local modules
+from utils.utils_consumer import create_kafka_consumer
+from utils.utils_logger import logger
 
-def json_deserializer(m_bytes):
+#####################################
+# Load Environment Variables
+#####################################
+
+load_dotenv()
+
+#####################################
+# Getter Functions for .env Variables
+#####################################
+def get_kafka_topic() -> str:
+    """Fetch Kafka topic from environment or use default."""
+    topic = os.getenv("PROJECT_TOPIC", "buzzline-topic")
+    logger.info(f"Kafka topic: {topic}")
+    return topic
+
+
+def get_kafka_consumer_group_id() -> str:
+    """Fetch Kafka consumer group id from environment or use default."""
+    group_id: str = os.getenv("BUZZ_CONSUMER_GROUP_ID", "default_group")
+    logger.info(f"Kafka consumer group id: {group_id}")
+    return group_id
+
+#####################################
+# Set up data structures
+#####################################
+
+# Store watch hours grouped by subscription type
+subscription_type_watch_hours = defaultdict(list)
+
+
+#####################################
+# Set up live visuals
+#####################################
+def update_chart():
+    """Update the live chart with the average sentiment per category."""
+    # Clear the previous chart
+    ax.clear()
+
+    # Get the subscription type and average watch hours values
+    subscription_type = list(subscription_type_watch_hours.keys())
+    avg_watch_hours = [
+        sum(vals) / len(vals) if vals else 0
+        for vals in subscription_type_watch_hours.values()
+    ]
+
+    # Create a bar chart using the bar() method.
+    # Pass in the x list, the y list, and the color
+    ax.bar(subscription_type, avg_watch_hours, color="blue", edgecolor="black")
+
+    # Use the built-in axes methods to set the labels and title
+    ax.set_xlabel("Subscription Type")
+    ax.set_ylabel("Average Watch Hours")
+    ax.set_title("Real-Time Average Watch Hours Per Subscription Type by Sarah Howard")
+    ax.set_ylim(0, 100)
+
+    # Use the set_xticklabels() method to rotate the x-axis labels
+    # Pass in the x list, specify the rotation angle is 45 degrees,
+    # and align them to the right
+    # ha stands for horizontal alignment
+    ax.set_xticklabels(categories, rotation=45, ha="right")
+
+    # Use the tight_layout() method to automatically adjust the padding
+    plt.tight_layout()
+
+    # Draw the chart
+    plt.draw()
+
+    # Pause briefly to allow some time for the chart to render
+    plt.pause(0.01)
+
+#####################################
+# Function to process a single message
+# #####################################
+
+def process_message(message: str) -> None:
     """
-    Deserializer function to convert JSON bytes from Kafka back into a Python dictionary.
+    Process a single JSON message from Kafka and update the chart.
+
+    Args:
+        message (str): The JSON message as a string.
     """
-    if m_bytes is None:
-        return None
     try:
-        return json.loads(m_bytes.decode('utf-8'))
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-        return None
+        # Log the raw message for debugging
+        logger.debug(f"Raw message: {message}")
 
-def consume_data_from_kafka():
-    """
-    Initializes the Kafka consumer and processes messages from the topic.
-    """
-    try:
-        # 1. Initialize the Kafka Consumer
-        consumer = KafkaConsumer(
-            TOPIC_NAME,
-            bootstrap_servers=BOOTSTRAP_SERVERS,
-            auto_offset_reset='earliest', # Start reading at the earliest message if no offset is committed
-            enable_auto_commit=True,      # Automatically commit offsets
-            group_id='netflix-data-processor-group', # A unique ID for this consumer group
-            value_deserializer=json_deserializer,
-            key_deserializer=lambda m_bytes: m_bytes.decode('utf-8') if m_bytes else None
-        )
-        
-        print(f"Kafka Consumer initialized. Listening to topic: {TOPIC_NAME}...")
-        print("Press Ctrl+C to stop the consumer.")
+        # Parse the JSON string into a Python dictionary
+        message_dict: dict = json.loads(message)
 
-        # 2. Start consuming messages
-        for message in consumer:
-            # The message value is already a Python dictionary because of json_deserializer
-            customer_record = message.value
-            key = message.key
-            
-            if customer_record:
-                # You can now process the data here. For example, check for churned customers:
-                
-                churn_status = "CHURNED" if customer_record.get('churned') == 1 else "ACTIVE"
-                
-                print("-" * 50)
-                print(f"Key: {key}, Partition: {message.partition}, Offset: {message.offset}")
-                print(f"Customer ID: {customer_record.get('customer_id')}")
-                print(f"Age: {customer_record.get('age')}, Subscription: {customer_record.get('subscription_type')}")
-                print(f"Status: **{churn_status}**")
-        
-    except KafkaError as e:
-        print(f"An error occurred with Kafka: {e}")
-    except KeyboardInterrupt:
-        print("\nConsumer stopped by user.")
+        # Ensure the processed JSON is logged for debugging
+        logger.info(f"Processed JSON message: {message_dict}")
+
+        # Ensure it's a dictionary before accessing fields
+        if isinstance(message_dict, dict):
+            subscription_type = message_dict.get("subscription_type", "unknown")
+            watch_hours = float(message_dict.get("watch_hours", 0.0))
+
+            logger.info(f"Message subscription type: {subscription_type}, watch hours: {watch_hours}")
+
+            # Append watch hours to subscription type
+            subscription_type_watch_hours[subscription_type].append(watch_hours)
+
+            # Log the updated counts
+            logger.info(f"Updated subscription type watch hours: {dict(subscription_type_watch_hours)}")
+
+            # Update the chart
+            update_chart()
+
+            # Log the updated chart
+            logger.info(f"Chart updated successfully for message: {message}")
+        else:
+            logger.error(f"Expected a dictionary but got: {type(message_dict)}")
+
+    except json.JSONDecodeError:
+        logger.error(f"Invalid JSON message: {message}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logger.error(f"Error processing message: {e}")
+
+
+#####################################
+# Define main function for this module
+#####################################
+
+
+def main() -> None:
+    """
+    Main entry point for the consumer.
+
+    - Reads the Kafka topic name and consumer group ID from environment variables.
+    - Creates a Kafka consumer using the `create_kafka_consumer` utility.
+    - Polls messages and updates a live chart.
+    """
+    logger.info("START consumer.")
+
+    # fetch .env content
+    topic = get_kafka_topic()
+    group_id = get_kafka_consumer_group_id()
+    logger.info(f"Consumer: Topic '{topic}' and group '{group_id}'...")
+
+    # Create the Kafka consumer using the helpful utility function.
+    consumer = create_kafka_consumer(topic, group_id)
+
+    # Poll and process messages
+    logger.info(f"Polling messages from topic '{topic}'...")
+    try:
+        for message in consumer:
+            # message is a complex object with metadata and value
+            # Use the value attribute to extract the message as a string
+            message_str = message.value
+            logger.debug(f"Received message at offset {message.offset}: {message_str}")
+            process_message(message_str)
+    except KeyboardInterrupt:
+        logger.warning("Consumer interrupted by user.")
+    except Exception as e:
+        logger.error(f"Error while consuming messages: {e}")
     finally:
-        # 3. Close the consumer connection
-        if 'consumer' in locals():
-            consumer.close()
-            print("Consumer connection closed.")
+        consumer.close()
+        logger.info(f"Kafka consumer for topic '{topic}' closed.")
+
+    logger.info(f"END consumer for topic '{topic}' and group '{group_id}'.")
+
+
+#####################################
+# Conditional Execution
+#####################################
 
 if __name__ == "__main__":
-    consume_data_from_kafka()
+
+    # Call the main function to start the consumer
+    main()
+
+    # Turn off interactive mode after completion
+    plt.ioff()  
+
+    # Display the final chart
+    plt.show()

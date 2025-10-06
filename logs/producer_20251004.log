@@ -1,0 +1,10 @@
+2025-10-04 23:10:02,611 — INFO — kafka.conn — <BrokerConnection node_id=bootstrap-0 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: connecting to localhost:9092 [('::1', 9092, 0, 0) IPv6]
+2025-10-04 23:10:02,613 — INFO — kafka.conn — Probing node bootstrap-0 broker version
+2025-10-04 23:10:02,614 — INFO — kafka.conn — <BrokerConnection node_id=bootstrap-0 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: Connection complete.
+2025-10-04 23:10:02,739 — INFO — kafka.conn — Broker version identified as 2.6.0
+2025-10-04 23:10:02,740 — INFO — kafka.conn — Set configuration api_version=(2, 6, 0) to skip auto check_version requests on startup
+2025-10-04 23:10:02,764 — INFO — kafka.conn — <BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: connecting to localhost:9092 [('::1', 9092, 0, 0) IPv6]
+2025-10-04 23:10:02,765 — INFO — kafka.conn — <BrokerConnection node_id=1 host=localhost:9092 <connecting> [IPv6 ('::1', 9092, 0, 0)]>: Connection complete.
+2025-10-04 23:10:02,765 — INFO — kafka.conn — <BrokerConnection node_id=bootstrap-0 host=localhost:9092 <connected> [IPv6 ('::1', 9092, 0, 0)]>: Closing connection. 
+2025-10-04 23:10:54,167 — INFO — kafka.producer.kafka — Closing the Kafka producer with 4294967.0 secs timeout.
+2025-10-04 23:10:54,170 — INFO — kafka.conn — <BrokerConnection node_id=1 host=localhost:9092 <connected> [IPv6 ('::1', 9092, 0, 0)]>: Closing connection. 
