@@ -5,20 +5,20 @@ Read a file to be able to study Netflix customer churn.
 
 Example JSON message
 {
-   "customer ID": "a9b75100-82a8-427a-a208-72f24052884a"
-    "age": "51"
-    "gender": "Female"
-    "subscription_type": "Basic"
-    "watch_hours": "14.73"
-    "last_login_days": "29"
-    "region": "Africa"
-    "device": "TV"
-    "monthly_fee": "8.99"
-    "churned": "1"
-    "payment method": "Gift Card"
-    "number_of_profiles": "1"
-    "avg_watch_time_per_day": "0.49"
-    "favorite_genre": "Action"
+   "customer_id": "a9b75100-82a8-427a-a208-72f24052884a",
+   "age": 51,
+   "gender": "Female",
+   "subscription_type": "Basic",
+   "watch_hours": 14.73,
+   "last_login_days": 29,
+   "region": "Africa",
+   "device": "TV",
+   "monthly_fee": 8.99,
+   "churned": 1,
+   "payment_method": "Gift Card",
+   "number_of_profiles": 1,
+   "avg_watch_time_per_day": 0.49,
+   "favorite_genre": "Action"
 }
 
 """

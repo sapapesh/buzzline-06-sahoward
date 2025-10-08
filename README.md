@@ -21,10 +21,13 @@ Make sure the script is executable.
 Run the shell script to set up Kafka.
 Cd (change directory) to the kafka directory.
 Start the Kafka server in the foreground. Keep this terminal open - Kafka will run here.
+
+```
 chmod +x scripts/prepare_kafka.sh
 scripts/prepare_kafka.sh
 cd ~/kafka
 bin/kafka-server-start.sh config/kraft/server.properties
+```
 Keep this terminal open! Kafka is running and needs to stay active.
 
 ## Manage Local Project Virtual Environment
@@ -37,32 +40,39 @@ Upgrade pip and key tools.
 Install from requirements.txt.
 Windows
 Open a new PowerShell terminal in VS Code (Terminal / New Terminal / PowerShell). Python 3.11 is required for Apache Kafka.
-
+```
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 py -m pip install --upgrade pip wheel setuptools
 py -m pip install --upgrade -r requirements.txt
 py -m pip install kafka-python pandas matplotlib
+```
 If you get execution policy error, run this first: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 Mac / Linux
 Open a new terminal in VS Code (Terminal / New Terminal)
 
+```
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade -r requirements.txt
+```
+
 Task 3. Run Tests and Verify Emitters
 In the same terminal used for Task 2, we'll run some tests to ensure that all four emitters are working fine on your machine. All tests should pass if everything is installed and set up correctly.
 
+```
 pytest -v
+```
 Then run the verify_emitters.py script as a module to check that we can emit to all four types. For the Kakfa sink to work, the Kafka service must be running.
 
 Windows Powershell
+```
 py -m verify_emitters
 Mac / Linux
 python3 -m verify_emitters
-
+```
 
 ## Start a New Streaming Application
 This will take two terminals:
@@ -77,13 +87,15 @@ The existing producer writes messages to a live data file in the data folder. If
 In VS Code, open a NEW terminal. Use the commands below to activate .venv, and start the producer.
 
 Windows:
-
+```
 .\.venv\Scripts\Activate.ps1
 py -m producers.producer_sahoward
+```
 Mac/Linux:
-
+```
 source .venv/bin/activate
 python3 -m producers.producer_sahoward
+```
 NOTE: The producer will still work if the Kafka service is not available.
 
 Consumer Terminal
@@ -92,13 +104,15 @@ The below consumer will calculate the average hours watched for each subscriptio
 In VS Code, open a NEW terminal in your root project folder. Use the commands below to activate .venv, and start the consumer.
 
 Windows:
-
+```
 .\.venv\Scripts\Activate.ps1
 py -m consumers.consumer_sahoward
+```
 Mac/Linux:
-
+```
 source .venv/bin/activate
 python3 -m consumers.consumer_sahoward
+```
 Review the Project Code
 Review the requirements.txt file.
 
