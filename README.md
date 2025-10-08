@@ -107,11 +107,13 @@ Windows:
 ```
 .\.venv\Scripts\Activate.ps1
 py -m consumers.consumer_sahoward
+py -m consumers.consumer2_sahoward
 ```
 Mac/Linux:
 ```
 source .venv/bin/activate
 python3 -m consumers.consumer_sahoward
+python3 -m consumers.consumer2_sahoward
 ```
 Review the Project Code
 Review the requirements.txt file.
