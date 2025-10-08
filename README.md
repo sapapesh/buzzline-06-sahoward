@@ -7,7 +7,9 @@ This project will attempt to review data from Netflix to determine the impact of
 ## Start WSL
 Launch WSL. Open a PowerShell terminal in VS Code. Run the following command:
 
+```
 wsl
+```
 
 You should now be in a Linux shell (prompt shows something like username@DESKTOP:.../repo-name$).
 
