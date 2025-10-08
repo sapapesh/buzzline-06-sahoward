@@ -123,3 +123,10 @@ The consumer is reading the subscription type and calculating the average number
 ![caption](images/netflix.png)
 
 Based on this data, it would appear that there are other factors that are more critical in determining whether a customer will churn with Netflix.
+
+## Further analysis
+Upon thinking about my first analysis, I realized that looking at the subscription type and average hours watched alone did not provide me details on the churn rate.  Therefore, I created a second consumer to add whether the customer churned or not to my chart.
+
+![caption](images/netflix2.png)
+
+Based on the second chart, the average number of hours watched for each subscription type still does not appear to be impacting the customer churn. However, the average number of hours watched was significantly lower for all subscription types for customers that churned than for customers that did not churn.
